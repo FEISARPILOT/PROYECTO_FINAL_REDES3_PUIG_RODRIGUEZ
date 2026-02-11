@@ -1,0 +1,102 @@
+enable
+configure terminal
+!
+! =========================================================
+! (0) SEGURIDAD BÁSICA (contraseñas)
+! =========================================================
+enable secret IOU1_ENABLE_SECRET
+username admin privilege 15 secret IOU1_ADMIN_SECRET
+service password-encryption
+!
+line console 0
+ login local
+ exec-timeout 10 0
+ logging synchronous
+exit
+!
+line vty 0 4
+ login local
+ exec-timeout 10 0
+ logging synchronous
+exit
+!
+banner motd ^
+! Acceso restringido. Solo personal autorizado.
+^
+!
+! =========================================================
+! (1) Identidad + evitar que el IOS intente resolver DNS
+! =========================================================
+hostname IOU1
+no ip domain-lookup
+!
+! =========================================================
+! (2) VLANs: separamos CLIENT-A y CLIENT-B en redes distintas.
+! =========================================================
+vlan 10
+ name VLAN10_CLIENT_A
+exit
+vlan 11
+ name VLAN11_CLIENT_B
+exit
+!
+! =========================================================
+! (3) TRUNK hacia el router (router-on-a-stick)
+! =========================================================
+interface Ethernet0/0
+ description TRUNK_to_R1_F1/0
+ !
+ ! Si te da error, elimina la linea siguiente:
+ switchport trunk encapsulation dot1q
+ !
+ switchport mode trunk
+ duplex full
+ no shutdown
+exit
+!
+! =========================================================
+! (4) Puertos de acceso + Port-Security
+!     - Cada cliente queda dentro de su VLAN
+!     - Solo 1 MAC permitida por puerto (sticky)
+!     - Si aparece otra MAC, el puerto cae (err-disable)
+! =========================================================
+config t
+interface Ethernet0/1
+ description ACCESS_to_CLIENT-A_VLAN10
+ switchport mode access
+ switchport access vlan 10
+ spanning-tree portfast
+ switchport port-security
+ switchport port-security maximum 1
+ switchport port-security mac-address sticky
+ switchport port-security violation shutdown
+ no shutdown
+exit
+!
+interface Ethernet0/2
+ description ACCESS_to_CLIENT-B_VLAN11
+ switchport mode access
+ switchport access vlan 11
+ spanning-tree portfast
+ switchport port-security
+ switchport port-security maximum 1
+ switchport port-security mac-address sticky
+ switchport port-security violation shutdown
+ no shutdown
+exit
+!
+! =========================================================
+! (5) DHCP Snooping
+!     - Evita DHCP rogue en la LAN
+!     - Solo confiamos el trunk hacia el router (servidor DHCP real)
+! =========================================================
+ip dhcp snooping
+ip dhcp snooping vlan 10-11
+no ip dhcp snooping information option
+!
+interface Ethernet0/0
+ ip dhcp snooping trust
+exit
+!
+end
+wr

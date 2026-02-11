@@ -1,0 +1,155 @@
+enable
+configure terminal
+!
+! =========================================================
+! (0) SEGURIDAD BÁSICA (contraseñas)
+! =========================================================
+!
+! ¡IMPORTANTE! ¡¡No copiar el script todo de golpe!!
+!               El portapapeles (clipboard) de GNS3 es limitado
+!             
+enable secret R1_ENABLE_SECRET
+username admin privilege 15 secret R1_ADMIN_SECRET
+service password-encryption
+no ip domain-lookup
+!
+! Consola: login local
+line console 0
+ login local
+ exec-timeout 10 0
+ logging synchronous
+exit
+!
+! VTY: login local (idealmente solo SSH)
+line vty 0 4
+ login local
+ exec-timeout 10 0
+ logging synchronous
+ transport input ssh
+exit
+!
+banner motd ^
+! Acceso restringido. Solo personal autorizado.
+^
+!
+! =========================================================
+! (1) WAN hacia NAT1 (GNS3 NAT):
+!     - IP por DHCP desde el NAT de GNS3
+!     - NAT outside (salida a Internet)
+! =========================================================
+interface FastEthernet0/0
+ description TO_GNS3_NAT1
+ ip address dhcp
+ ip nat outside
+ no shutdown
+exit
+!
+! =========================================================
+! (2) Enlace físico hacia el switch (TRUNK):
+!     - Sin IP aquí, usamos subinterfaces dot1Q
+!     - Forzamos FULL dúplex (solucionó duplex mismatch)
+! =========================================================
+interface FastEthernet1/0
+ description TRUNK_to_IOU1_E0/0
+ no ip address
+ duplex full
+ no shutdown
+exit
+!
+! =========================================================
+! (3) Router-on-a-stick:
+!     - VLAN10 gateway: 192.168.10.1/24
+!     - VLAN11 gateway: 192.168.11.1/24
+!     - NAT inside para traducir hacia Internet
+!     - ACL inbound por VLAN (DHCP + Internet + bloqueo inter-VLAN)
+! =========================================================
+interface FastEthernet1/0.10
+ description VLAN10_GATEWAY
+ encapsulation dot1Q 10
+ ip address 192.168.10.1 255.255.255.0
+ ip nat inside
+ ip access-group VLAN10_IN in
+exit
+!
+interface FastEthernet1/0.11
+ description VLAN11_GATEWAY
+ encapsulation dot1Q 11
+ ip address 192.168.11.1 255.255.255.0
+ ip nat inside
+ ip access-group VLAN11_IN in
+exit
+!
+! =========================================================
+! (4) DHCP Server en el router (una pool por VLAN)
+! =========================================================
+ip dhcp excluded-address 192.168.10.1 192.168.10.20
+ip dhcp excluded-address 192.168.11.1 192.168.11.20
+!
+ip dhcp pool VLAN10_POOL
+ network 192.168.10.0 255.255.255.0
+ default-router 192.168.10.1
+ dns-server 1.1.1.1 8.8.8.8
+ domain-name lab.local
+exit
+!
+ip dhcp pool VLAN11_POOL
+ network 192.168.11.0 255.255.255.0
+ default-router 192.168.11.1
+ dns-server 1.1.1.1 8.8.8.8
+ domain-name lab.local
+exit
+!
+! =========================================================
+! (5) Ruta por defecto:
+!     - Aprendida por DHCP desde la interfaz WAN
+! =========================================================
+ip route 0.0.0.0 0.0.0.0 dhcp
+!
+! =========================================================
+! (6) ACL estándar para NAT (qué redes internas pueden salir)
+! =========================================================
+ip access-list standard NAT_INSIDE
+ permit 192.168.10.0 0.0.0.255
+ permit 192.168.11.0 0.0.0.255
+exit
+!
+! =========================================================
+! (7) NAT/PAT overload:
+!     - Traduce IP privada -> IP WAN de Fa0/0 (con puertos)
+! =========================================================
+ip nat inside source list NAT_INSIDE interface FastEthernet0/0 overload
+!
+! =========================================================
+! (8) ACLs extendidas por VLAN (INBOUND)
+!     - Permitir DHCP (bootpc -> bootps) antes de tener IP
+!     - (Opcional) Bloquear tráfico entre VLAN10 y VLAN11
+!     - Permitir Internet (permit ip ... any)
+!
+!     Si quieres permitir inter-VLAN, elimina las líneas deny.
+! =========================================================
+ip access-list extended VLAN10_IN
+ !
+ ! DHCP: cliente (68) -> servidor (67)
+ permit udp any eq bootpc any eq bootps
+ !
+ ! Bloqueo inter-VLAN (opcional)
+ deny ip 192.168.10.0 0.0.0.255 192.168.11.0 0.0.0.255
+ !
+ ! Permitir Internet y resto
+ permit ip 192.168.10.0 0.0.0.255 any
+exit
+!
+ip access-list extended VLAN11_IN
+ !
+ ! DHCP: cliente (68) -> servidor (67)
+ permit udp any eq bootpc any eq bootps
+ !
+ ! Bloqueo inter-VLAN (opcional)
+ deny ip 192.168.11.0 0.0.0.255 192.168.10.0 0.0.0.255
+ !
+ ! Permitir Internet y resto
+ permit ip 192.168.11.0 0.0.0.255 any
+exit
+!
+end
+write memory
