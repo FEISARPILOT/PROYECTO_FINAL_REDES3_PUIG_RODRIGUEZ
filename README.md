@@ -1,4 +1,4 @@
-## PROYECTO_FINAL_REDES3_PUIG_RODRIGUEZ 
+# PROYECTO_FINAL_REDES3_PUIG_RODRIGUEZ 
 Repositorio donde subiremos el Albert Rodriguez y el Joan Puig los ficheros de configuración de los dispositivos usados en cada escenario de las actividades de GNS3.
 
 ## Actividad 1 (GNS3): VLANs + Router-on-a-Stick + DHCP + NAT (Internet) + ACLs + Seguridad L2
@@ -13,6 +13,6 @@ El escenario se apoya en dos ficheros de configuración:
 
 Como resultado, ambos clientes obtienen IP automáticamente por DHCP, pueden alcanzar su gateway, tienen conectividad a Internet mediante NAT/PAT y el laboratorio permite evidenciar políticas de seguridad (ACLs y Port-Security) con capturas y comandos de verificación.
 
-# Topologia de red
+### Topologia de red
 Si queremos acceder al diagrama de la topología inicial, podemos acceder a él a través de esta URL.
  https://app.diagrams.net/#G1E1sBBJKPGhXsnZgbV_wlVQ_m8ko8uLoZ#%7B%22pageId%22%3A%22fRRjgxpdgqEocGk969YJ%22%7D
