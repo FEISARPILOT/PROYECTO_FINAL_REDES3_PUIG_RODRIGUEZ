@@ -12,3 +12,7 @@ El escenario se apoya en dos ficheros de configuración:
 - `R1_i1_startup-config.cfg`: configura el router en modo router-on-a-stick con subinterfaces dot1Q para cada VLAN, actúa como servidor DHCP para ambas redes, establece la ruta por defecto hacia el NAT de GNS3 y habilita NAT/PAT para dar acceso a Internet. También aplica ACLs para permitir DHCP, permitir salida a Internet y, opcionalmente, bloquear la comunicación directa entre VLAN 10 y VLAN 11.
 
 Como resultado, ambos clientes obtienen IP automáticamente por DHCP, pueden alcanzar su gateway, tienen conectividad a Internet mediante NAT/PAT y el laboratorio permite evidenciar políticas de seguridad (ACLs y Port-Security) con capturas y comandos de verificación.
+
+# Topologia de red
+Si queremos acceder al diagrama de la topología inicial, podemos acceder a él a través de esta URL.
+ https://app.diagrams.net/#G1E1sBBJKPGhXsnZgbV_wlVQ_m8ko8uLoZ#%7B%22pageId%22%3A%22fRRjgxpdgqEocGk969YJ%22%7D
