@@ -1,3 +1,6 @@
+## PROYECTO_FINAL_REDES3_PUIG_RODRIGUEZ 
+Repositorio donde subiremos el Albert Rodriguez y el Joan Puig los ficheros de configuración de los dispositivos usados en cada escenario de las actividades de GNS3.
+
 ## Actividad 1 (GNS3): VLANs + Router-on-a-Stick + DHCP + NAT (Internet) + ACLs + Seguridad L2
 
 En esta primera actividad montamos en GNS3 un escenario base de red “realista” usando un switch L2 (IOU1) y un router (R1). El objetivo es construir, a partir de dos clientes, una red segmentada por VLANs y demostrar que cada parte del camino funciona de forma verificable: la conmutación en capa 2, el enrutamiento entre VLANs, la asignación automática de direcciones y la salida a Internet con control de tráfico.
