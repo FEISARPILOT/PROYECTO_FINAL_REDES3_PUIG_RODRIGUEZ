@@ -38,8 +38,7 @@ Así se evita el **doble NAT**, se concentran las políticas en un único punto 
 **Acción:** ejecutar `1_R1_Remove_NAT` en **R1**.  
 **Resultado esperado:** R1 deja de traducir direcciones y su **ruta por defecto** apunta a **pfSense** por el enlace de tránsito.
 
-- **[CAPTURA ACT2.1-01 — Insertar aquí]**  
-  Interfaces y tabla de rutas: enlace de tránsito operativo + default route hacia pfSense.
+- Interfaces y tabla de rutas: enlace de tránsito operativo + default route hacia pfSense.
 
 ---
 
