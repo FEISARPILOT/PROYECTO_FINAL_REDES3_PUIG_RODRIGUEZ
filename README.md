@@ -65,10 +65,8 @@ Desde hosts en VLAN 10/11: `ping 8.8.8.8` y `traceroute` (confirmar salto por pf
 ### Topologia de red
 Si queremos acceder al diagrama de la topología inicial de cada ejercicio, podemos acceder a él a través de estas URLs.
 
-ACT 2.1:  
-https://drive.google.com/file/d/1EWtqjvkYynzZX3Q9x9eZGoF1wKxCtHWQ/view?usp=sharing
+- `ACT 2.1`: https://drive.google.com/file/d/1EWtqjvkYynzZX3Q9x9eZGoF1wKxCtHWQ/view?usp=sharing
 
-ACT 2.2:
-https://drive.google.com/file/d/17LD131_-_xeeBpQVkOkg6WbProJHFD3i/view?usp=sharing
+- `ACT 2.2`: https://drive.google.com/file/d/17LD131_-_xeeBpQVkOkg6WbProJHFD3i/view?usp=sharing
 
 
