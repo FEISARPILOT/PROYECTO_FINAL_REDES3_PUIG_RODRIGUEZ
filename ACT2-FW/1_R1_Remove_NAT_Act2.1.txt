@@ -1,0 +1,60 @@
+enable
+configure terminal
+!
+! =========================================================
+! ACT 2.1 - R1 deja de hacer NAT/PAT
+! Ahora el NAT/PAT lo realiza pfSense (WAN em0 -> NAT1 GNS3)
+!
+! En R1:
+! - Fa0/0 pasa a ser enlace de tránsito hacia pfSense (em1)
+! - Las subinterfaces VLAN dejan de ser "ip nat inside"
+! - Eliminamos la regla NAT overload y su ACL
+! - La ruta por defecto apunta a pfSense (10.0.0.1)
+! =========================================================
+!
+! =========================================================
+! (1) Fa0/0: de "WAN a NAT1" a "tránsito hacia pfSense (em1)"
+!     R1 = 10.0.0.2/30
+!     pfSense (em1/LAN-tránsito) = 10.0.0.1/30
+! =========================================================
+interface FastEthernet0/0
+ description TO_PFSENSE_EM1_TRANSIT
+ no ip address dhcp
+ no ip nat outside
+ no ip virtual-reassembly
+ ip address 10.0.0.2 255.255.255.252
+ duplex full
+ no shutdown
+exit
+!
+! =========================================================
+! (2) Subinterfaces VLAN (router-on-a-stick):
+!     Quitamos NAT inside para evitar doble NAT
+!     (R1 seguirá haciendo gateway + DHCP + ACLs por VLAN)
+! =========================================================
+interface FastEthernet1/0.10
+ no ip nat inside
+ no ip virtual-reassembly
+exit
+!
+interface FastEthernet1/0.11
+ no ip nat inside
+ no ip virtual-reassembly
+exit
+!
+! =========================================================
+! (3) Eliminamos NAT/PAT en R1 (overload) y su ACL
+! =========================================================
+no ip nat inside source list NAT_INSIDE interface FastEthernet0/0 overload
+no ip access-list standard NAT_INSIDE
+!
+! =========================================================
+! (4) Ruta por defecto:
+!     Antes: por DHCP hacia NAT1 (cuando R1 era el borde)
+!     Ahora: hacia pfSense (10.0.0.1) para salir a Internet
+! =========================================================
+no ip route 0.0.0.0 0.0.0.0 dhcp
+ip route 0.0.0.0 0.0.0.0 10.0.0.1
+!
+end
+write memory

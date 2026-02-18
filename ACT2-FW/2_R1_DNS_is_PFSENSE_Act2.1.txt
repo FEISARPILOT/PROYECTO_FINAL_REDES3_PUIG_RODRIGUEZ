@@ -1,0 +1,42 @@
+enable
+conf t
+!
+! =========================================================
+! OBJETIVO (Act 2.1):
+! - Forzar que TODOS los clientes de VLAN10 y VLAN11 usen pfSense como DNS
+!   (10.0.0.1) en vez de DNS públicos (1.1.1.1 / 8.8.8.8).
+!
+! ¿POR QUÉ?
+! 1) Trazabilidad: si el DNS lo resuelve pfSense, podemos ver logs y controlar
+!    consultas (auditoría y evidencias del punto 5: logging/monitorización).
+! 2) Seguridad: evita el bypass de políticas (ej: un cliente que ponga 8.8.8.8
+!    para saltarse bloqueos/filtrados DNS).
+! 3) Diseño coherente: pfSense ya está haciendo NAT y filtrado, por tanto
+!    centralizar DNS en pfSense tiene sentido (control “en el perímetro”).
+! =========================================================
+!
+ip dhcp pool VLAN10_POOL
+ ! Eliminamos DNS externos entregados por DHCP en VLAN 10.
+ ! Si los dejamos, los clientes podrían resolver nombres sin pasar por pfSense,
+ ! perdiendo trazabilidad y pudiendo saltarse políticas.
+ no dns-server 1.1.1.1 8.8.8.8
+
+ ! Indicamos que el DNS para VLAN 10 será pfSense.
+ ! 10.0.0.1 corresponde a la interfaz LAN de pfSense en el enlace de tránsito
+ ! entre R1 y pfSense (red 10.0.0.0/30).
+ dns-server 10.0.0.1
+exit
+!
+ip dhcp pool VLAN11_POOL
+ ! Repetimos lo mismo para VLAN 11: fuera DNS públicos,
+ ! para que toda resolución pase por pfSense y podamos controlarla/loguearla.
+ no dns-server 1.1.1.1 8.8.8.8
+
+ ! pfSense como DNS centralizado para VLAN 11.
+ dns-server 10.0.0.1
+exit
+!
+end
+!
+! Guardamos configuración para que el cambio sea persistente tras reinicio.
+wr mem

@@ -1,0 +1,144 @@
+!
+! =========================================================
+! SCRIPT MANUAL
+! Router Cisco C8200L - Actividad 2.2 (hardware físico)
+!
+! Objetivo:
+!  - WAN (Gi0/0/0) obtiene IP por DHCP del "departamento"
+!  - LAN (Gi0/0/1) fija 172.16.1.1/24 para el PC cliente (Kali)
+!  - NAT/PAT para dar salida a Internet al PC cliente
+!  - ACL para delimitar qué red interna puede ser traducida por NAT
+!  - SSH para administración remota (PuTTY desde Kali)
+!  - SCP para transferir ficheros Router <-> Kali de forma segura
+!  - HTTP/HTTPS para acceso web al router con autenticación local
+!
+! Nota:
+!  - Bloques PKI/certificados que aparecen en el running-config suelen
+!    ser autogenerados (self-signed) o preexistentes; no los pegamos aquí.
+!  - Líneas de plataforma/licencias/diagnóstico también suelen ser del sistema.
+! =========================================================
+!
+enable
+configure terminal
+!
+! =========================================================
+! (1) Identidad y calidad de logs (trazabilidad de laboratorio)
+! =========================================================
+hostname Router
+!
+! Evita que el router intente resolver DNS cuando nos equivocamos escribiendo
+no ip domain-lookup
+!
+! Timestamps para que los mensajes y eventos queden datados con precisión
+service timestamps debug datetime msec
+service timestamps log datetime msec
+!
+! Registrar accesos exitosos (auditoría básica)
+login on-success log
+!
+! =========================================================
+! (2) Resolución DNS del propio router (útil para pruebas/servicios)
+! =========================================================
+ip name-server 8.8.8.8 8.8.4.4
+!
+! =========================================================
+! (3) Usuario local (se reutiliza para SSH y para HTTP/HTTPS)
+! =========================================================
+username admin privilege 15 secret cisco
+!
+! Si no estamos usando AAA con servidores externos, dejamos AAA nuevo desactivado
+no aaa new-model
+!
+! =========================================================
+! (4) WAN: interfaz hacia el “departamento” por DHCP + NAT outside
+! =========================================================
+interface GigabitEthernet0/0/0
+ description WAN_to_Department_DHCP
+ ip address dhcp
+ ip nat outside
+ no shutdown
+exit
+!
+! =========================================================
+! (5) LAN: interfaz hacia el PC cliente (Kali) + NAT inside
+! =========================================================
+interface GigabitEthernet0/0/1
+ description LAN_to_Kali_Client
+ ip address 172.16.1.1 255.255.255.0
+ ip nat inside
+ no shutdown
+exit
+!
+! =========================================================
+! (6) ACL para NAT (por qué existe)
+!
+! Esta ACL NO es un “firewall” aplicada a una interfaz.
+! Aquí se usa como selector de NAT: definimos QUÉ red interna está autorizada
+! a ser traducida. Si mañana conectamos otra red por error, no saldrá a Internet
+! porque no coincidirá con la ACL y no se traducirá.
+! =========================================================
+ip access-list standard 1
+ permit 172.16.1.0 0.0.0.255
+exit
+!
+! =========================================================
+! (7) NAT/PAT (overload): dar Internet al PC cliente
+! Traducimos 172.16.1.0/24 hacia la IP WAN de Gi0/0/0 usando puertos (PAT).
+! =========================================================
+ip nat inside source list 1 interface GigabitEthernet0/0/0 overload
+!
+! =========================================================
+! (8) Ruta por defecto aprendida por DHCP (WAN)
+! Imprescindible para que el router sepa por dónde enviar tráfico a Internet.
+! =========================================================
+ip route 0.0.0.0 0.0.0.0 dhcp
+!
+! =========================================================
+! (9) SSH (gestión remota desde PuTTY en Kali)
+! =========================================================
+!
+! Requisito típico de SSH: dominio + claves RSA.
+! En algunos equipos ya existe PKI/keys; si SSH ya funciona, esto podría omitirse.
+!
+ip domain-name enti.local
+crypto key generate rsa modulus 2048
+ip ssh version 2
+!
+! Opcional: mejora rendimiento de transferencia en sesiones SSH (si aplica)
+ip ssh bulk-mode 131072
+!
+! VTY: obligamos a usar usuario local y solo permitimos SSH
+line vty 0 4
+ login local
+ transport input ssh
+exit
+!
+! Si el equipo tiene más VTY, conviene alinearlas igual para evitar accesos inconsistentes
+line vty 5 14
+ login local
+ transport input ssh
+exit
+!
+! =========================================================
+! (10) SCP (transferencia segura de ficheros)
+! Permite copiar configs/backups desde Kali con scp hacia/desde el router.
+! =========================================================
+ip scp server enable
+!
+! =========================================================
+! (11) Servicio WEB (HTTP/HTTPS) para acceso desde navegador
+! =========================================================
+!
+! Activa HTTP y HTTPS. Usamos autenticación local (usuario admin).
+! HTTPS suele apoyarse en un certificado self-signed que el router puede generar.
+!
+ip http server
+ip http secure-server
+ip http authentication local
+!
+end
+write memory
+!
+! =========================================================
+! FIN DEL SCRIPT MANUAL
+! =========================================================
